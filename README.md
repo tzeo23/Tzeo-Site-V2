@@ -1,108 +1,71 @@
-
+<!DOCTYPE html>
 <html lang="el">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Τζεο Platform</title>
+<title>Τζεο Live Wall</title>
 
 <style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:system-ui;
-}
-
 body{
-background:linear-gradient(135deg,#0f172a,#1e293b);
+margin:0;
+font-family:system-ui;
+background:#0b1220;
 color:white;
-min-height:100vh;
 display:flex;
 justify-content:center;
-align-items:center;
-padding:20px;
 }
 
 .container{
 width:100%;
-max-width:800px;
+max-width:750px;
+padding:20px;
+}
+
+h1{
 text-align:center;
 }
 
-/* LANDING */
-#landing h1{
-font-size:60px;
-margin-bottom:15px;
-}
-
-#landing p{
-font-size:20px;
-color:#cbd5e1;
-margin-bottom:30px;
-}
-
-button{
-padding:15px 30px;
-border:none;
-border-radius:12px;
-background:#3b82f6;
-color:white;
-font-size:16px;
-cursor:pointer;
-transition:0.3s;
-}
-
-button:hover{
-background:#2563eb;
-transform:scale(1.05);
-}
-
-/* COMMENTS */
-#app{
-display:none;
+input,textarea,button{
 width:100%;
-text-align:left;
+margin-top:10px;
+padding:12px;
+border-radius:10px;
+border:none;
 }
 
-h2{
-text-align:center;
-margin-bottom:20px;
+input,textarea{
+background:#111827;
+color:white;
 }
 
 textarea{
-width:100%;
-height:120px;
-padding:15px;
-border-radius:12px;
-border:none;
-background:#111827;
-color:white;
+height:80px;
 resize:none;
 }
 
-.comment{
-background:#111827;
-padding:15px;
-border-radius:12px;
-margin-top:10px;
-position:relative;
+button{
+background:#3b82f6;
+color:white;
+cursor:pointer;
 }
 
-.delete{
-position:absolute;
-top:10px;
-right:10px;
-background:red;
-border:none;
-color:white;
-padding:5px 8px;
-border-radius:8px;
-cursor:pointer;
-font-size:12px;
+.post{
+background:#111827;
+padding:12px;
+border-radius:12px;
+margin-top:10px;
+}
+
+img{
+width:100%;
+border-radius:10px;
+margin-top:10px;
 }
 
 small{
 color:#94a3b8;
+display:block;
+margin-top:5px;
 }
 </style>
 </head>
@@ -111,81 +74,78 @@ color:#94a3b8;
 
 <div class="container">
 
-<!-- LANDING -->
-<div id="landing">
-<h1>Τζεο Platform</h1>
-<p>Μια απλή πλατφόρμα για σχόλια και δημιουργία.</p>
-<button onclick="start()">Ξεκίνα</button>
-</div>
+<h1>🔥 Τζεο Live Wall</h1>
 
-<!-- APP -->
-<div id="app">
-
-<h2>📝 Σχόλια</h2>
-
+<input id="name" placeholder="Όνομα">
 <textarea id="text" placeholder="Γράψε κάτι..."></textarea>
-<button onclick="addComment()">Δημοσίευση</button>
+<input id="img" placeholder="Image URL (προαιρετικό)">
+<button onclick="send()">Δημοσίευση</button>
 
-<div id="list"></div>
+<div id="feed"></div>
 
 </div>
 
-</div>
+<script type="module">
 
-<script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+getFirestore,
+collection,
+addDoc,
+onSnapshot,
+orderBy,
+query,
+serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-let comments = JSON.parse(localStorage.getItem("comments") || "[]");
+const firebaseConfig = {
+apiKey: "YOUR_KEY",
+authDomain: "YOUR_DOMAIN",
+projectId: "YOUR_ID"
+};
 
-/* START APP */
-function start(){
-document.getElementById("landing").style.display="none";
-document.getElementById("app").style.display="block";
-render();
-}
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-/* SAVE */
-function save(){
-localStorage.setItem("comments", JSON.stringify(comments));
-}
+/* REAL TIME FEED */
+const q = query(collection(db,"posts"),orderBy("time","desc"));
 
-/* ADD */
-function addComment(){
-let text = document.getElementById("text").value;
-if(!text.trim()) return;
+onSnapshot(q,(snap)=>{
+let feed = document.getElementById("feed");
+feed.innerHTML="";
 
-comments.unshift({
-text,
-time:new Date().toLocaleString()
-});
+snap.forEach(doc=>{
+let d = doc.data();
 
-save();
-document.getElementById("text").value="";
-render();
-}
-
-/* DELETE */
-function deleteComment(i){
-comments.splice(i,1);
-save();
-render();
-}
-
-/* RENDER */
-function render(){
-
-let list = document.getElementById("list");
-list.innerHTML="";
-
-comments.forEach((c,i)=>{
-list.innerHTML += `
-<div class="comment">
-<button class="delete" onclick="deleteComment(${i})">X</button>
-<div>${c.text}</div>
-<small>${c.time}</small>
+feed.innerHTML += `
+<div class="post">
+<b>${d.name}</b>
+<div>${d.text}</div>
+${d.img ? `<img src="${d.img}">` : ""}
+<small>${new Date(d.time?.seconds*1000).toLocaleString()}</small>
 </div>
 `;
 });
+});
 
+/* SEND POST */
+window.send = async function(){
+
+let name = document.getElementById("name").value || "Ανώνυμος";
+let text = document.getElementById("text").value;
+let img = document.getElementById("img").value;
+
+if(!text && !img) return;
+
+await addDoc(collection(db,"posts"),{
+name,
+text,
+img,
+time:serverTimestamp()
+});
+
+document.getElementById("text").value="";
+document.getElementById("img").value="";
 }
 
 </script>
