@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Τζεο Live Wall</title>
+<title>Τζεο Online Chat</title>
 
 <style>
 body{
@@ -17,7 +17,7 @@ justify-content:center;
 
 .container{
 width:100%;
-max-width:750px;
+max-width:700px;
 padding:20px;
 }
 
@@ -25,22 +25,17 @@ h1{
 text-align:center;
 }
 
-input,textarea,button{
+input,button{
 width:100%;
-margin-top:10px;
 padding:12px;
-border-radius:10px;
+margin-top:10px;
 border:none;
+border-radius:10px;
 }
 
-input,textarea{
+input{
 background:#111827;
 color:white;
-}
-
-textarea{
-height:80px;
-resize:none;
 }
 
 button{
@@ -49,23 +44,15 @@ color:white;
 cursor:pointer;
 }
 
-.post{
+.msg{
 background:#111827;
-padding:12px;
-border-radius:12px;
+padding:10px;
 margin-top:10px;
-}
-
-img{
-width:100%;
 border-radius:10px;
-margin-top:10px;
 }
 
 small{
 color:#94a3b8;
-display:block;
-margin-top:5px;
 }
 </style>
 </head>
@@ -74,14 +61,13 @@ margin-top:5px;
 
 <div class="container">
 
-<h1>🔥 Τζεο Live Wall</h1>
+<h1>💬 Τζεο Online Chat</h1>
 
 <input id="name" placeholder="Όνομα">
-<textarea id="text" placeholder="Γράψε κάτι..."></textarea>
-<input id="img" placeholder="Image URL (προαιρετικό)">
-<button onclick="send()">Δημοσίευση</button>
+<input id="text" placeholder="Γράψε μήνυμα">
+<button onclick="send()">Send</button>
 
-<div id="feed"></div>
+<div id="chat"></div>
 
 </div>
 
@@ -93,8 +79,8 @@ getFirestore,
 collection,
 addDoc,
 onSnapshot,
-orderBy,
 query,
+orderBy,
 serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -107,45 +93,42 @@ projectId: "YOUR_ID"
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* REAL TIME FEED */
-const q = query(collection(db,"posts"),orderBy("time","desc"));
+/* REAL TIME LISTENER */
+const q = query(collection(db,"messages"),orderBy("time"));
 
 onSnapshot(q,(snap)=>{
-let feed = document.getElementById("feed");
-feed.innerHTML="";
+
+document.getElementById("chat").innerHTML="";
 
 snap.forEach(doc=>{
 let d = doc.data();
 
-feed.innerHTML += `
-<div class="post">
-<b>${d.name}</b>
-<div>${d.text}</div>
-${d.img ? `<img src="${d.img}">` : ""}
+document.getElementById("chat").innerHTML += `
+<div class="msg">
+<b>${d.name}</b><br>
+${d.text}<br>
 <small>${new Date(d.time?.seconds*1000).toLocaleString()}</small>
 </div>
 `;
 });
+
 });
 
-/* SEND POST */
+/* SEND MESSAGE */
 window.send = async function(){
 
-let name = document.getElementById("name").value || "Ανώνυμος";
+let name = document.getElementById("name").value || "Anon";
 let text = document.getElementById("text").value;
-let img = document.getElementById("img").value;
 
-if(!text && !img) return;
+if(!text) return;
 
-await addDoc(collection(db,"posts"),{
+await addDoc(collection(db,"messages"),{
 name,
 text,
-img,
 time:serverTimestamp()
 });
 
 document.getElementById("text").value="";
-document.getElementById("img").value="";
 }
 
 </script>
